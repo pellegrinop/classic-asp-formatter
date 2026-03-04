@@ -1,0 +1,92 @@
+{
+    "name": "classic-asp-extension",
+    "displayName": "Classic ASP Formatter & Syntax",
+    "description": "Syntax highlighting, formatting, and diagnostics for Classic ASP (.asp) files",
+    "version": "1.0.1",
+    "publisher": "pellegrinop",
+    "engines": {
+        "vscode": "^1.75.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Formatters"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/pellegrinop/classic-asp-formatter.git"
+    },
+    "bugs": {
+        "url": "https://github.com/pellegrinop/classic-asp-formatter/issues"
+    },
+    "homepage": "https://github.com/pellegrinop/classic-asp-formatter#readme",
+    "license": "MIT",
+    "keywords": [
+        "classic-asp",
+        "asp",
+        "vbscript",
+        "formatter",
+        "syntax-highlighting"
+    ],
+    "activationEvents": [
+        "onLanguage:classic-asp",
+        "onCommand:classic-asp.check"
+    ],
+    "main": "./out/src/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "classic-asp.check",
+                "title": "ASP: Check Extension Activity"
+            }
+        ],
+        "languages": [
+            {
+                "id": "classic-asp",
+                "aliases": [
+                    "Classic ASP",
+                    "asp"
+                ],
+                "extensions": [
+                    ".asp"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "classic-asp",
+                "scopeName": "source.classic-asp",
+                "path": "./syntaxes/asp.tmLanguage.json"
+            }
+        ],
+        "menus": {
+            "explorer/context": [
+                {
+                    "command": "editor.action.formatDocument",
+                    "when": "resourceExtname == .asp"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "mocha out/test/*.test.js"
+    },
+    "devDependencies": {
+        "@types/glob": "^8.0.0",
+        "@types/mocha": "^10.0.1",
+        "@types/node": "16.x",
+        "@types/vscode": "^1.75.0",
+        "@typescript-eslint/eslint-plugin": "^5.45.0",
+        "@typescript-eslint/parser": "^5.45.0",
+        "@vscode/test-electron": "^2.2.0",
+        "eslint": "^8.28.0",
+        "glob": "^8.0.3",
+        "mocha": "^11.3.0",
+        "typescript": "^4.9.3"
+    }
+}

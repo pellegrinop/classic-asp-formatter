@@ -1,0 +1,74 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Classic ASP",
+    "scopeName": "source.classic-asp",
+    "patterns": [
+        {
+            "include": "#asp-block"
+        },
+        {
+            "include": "text.html.basic"
+        }
+    ],
+    "repository": {
+        "asp-block": {
+            "begin": "<%",
+            "beginCaptures": {
+                "0": { "name": "punctuation.section.embedded.begin.asp" }
+            },
+            "end": "%>",
+            "endCaptures": {
+                "0": { "name": "punctuation.section.embedded.end.asp" }
+            },
+            "name": "meta.embedded.block.asp",
+            "patterns": [
+                {
+                    "include": "#vbscript-code"
+                }
+            ]
+        },
+        "vbscript-code": {
+            "patterns": [
+                {
+                    "name": "comment.line.apostrophe.asp",
+                    "match": "'.*"
+                },
+                {
+                    "name": "string.quoted.double.asp",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.asp",
+                            "match": "\"\""
+                        }
+                    ]
+                },
+                {
+                    "name": "keyword.control.asp",
+                    "match": "(?i)\\b(If|Then|Else|ElseIf|End If|For|To|Step|Next|Each|In|While|Wend|Do|Loop|Until|Select Case|Case|Default|Function|Sub|Exit|On Error|Resume|Next|Call|Class|Public|Private|Property|Get|Let|Set|Const|Dim|ReDim|Erase|Redim|Preserve)\\b"
+                },
+                {
+                    "name": "keyword.operator.asp",
+                    "match": "(?i)\\b(And|Or|Not|Xor|Is|Mod|Eqv|Imp)\\b|[=<>+\\-*/\\\\^&]"
+                },
+                {
+                    "name": "constant.language.asp",
+                    "match": "(?i)\\b(True|False|Nothing|Empty|Null)\\b"
+                },
+                {
+                    "name": "support.class.asp",
+                    "match": "(?i)\\b(Request|Response|Server|Session|Application|ObjectContext|ASPError)\\b"
+                },
+                {
+                    "name": "support.function.asp",
+                    "match": "(?i)\\b(Abs|Array|Asc|Atn|CBool|CByte|CCur|CDate|CDbl|Chr|CInt|CLng|Cos|CreateObject|CSng|CStr|Date|DateAdd|DateDiff|DatePart|DateSerial|DateValue|Day|Eval|Exp|Filter|Fix|FormatCurrency|FormatDateTime|FormatNumber|FormatPercent|Hex|Hour|InputBox|InStr|InStrRev|Int|IsArray|IsDate|IsEmpty|IsNull|IsNumeric|IsObject|Join|LBound|LCase|Left|Len|LoadPicture|Log|LTrim|Mid|Minute|Month|MonthName|MsgBox|Now|Oct|Replace|Right|Rnd|Round|RTrim|ScriptEngine|ScriptEngineBuildVersion|ScriptEngineMajorVersion|ScriptEngineMinorVersion|Second|Sgn|Sin|Space|Split|Sqr|StrComp|StrReverse|String|Tan|Time|Timer|TimeSerial|TimeValue|Trim|TypeName|UBound|UCase|VarType|Weekday|WeekdayName|Year)\\b"
+                },
+                {
+                    "name": "variable.other.asp",
+                    "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+                }
+            ]
+        }
+    }
+}

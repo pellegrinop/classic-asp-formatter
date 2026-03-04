@@ -1,0 +1,13 @@
+.vscode
+.vscode-test
+node_modules
+# out - needed for packaging
+*.vsix
+.gitignore
+.git
+.vscodeignore
+test.asp
+brain/
+task.md
+implementation_plan.md
+walkthrough.md
