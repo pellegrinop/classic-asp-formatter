@@ -14,9 +14,30 @@ export function formatASP(text: string): string {
 
     for (const part of parts) {
         if (part.startsWith('<%') && part.endsWith('%>')) {
-            // ASP Block
-            const content = part.substring(2, part.length - 2);
+            // Check if it's an expression tag <%=
+            const isExpression = part.startsWith('<%=');
+            const openingTag = isExpression ? '<%=' : '<%';
+            const content = part.substring(openingTag.length, part.length - 2);
+            
             const lines = content.split('\n');
+            const isInitiallyMultiLine = lines.length > 1;
+            
+            // If it's a short single-line block, keep it inline
+            if (!isInitiallyMultiLine && content.trim().length < 100) {
+                const trimmed = content.trim();
+                const processed = trimmed ? formatOperators(trimmed) : '';
+                // For <%=, we often don't want a space if it's a simple variable, but let's be consistent
+                const formatted = processed ? ` ${processed} ` : '';
+                result += openingTag + formatted + '%>';
+                continue;
+            }
+
+            // Calculate base indentation for alignment (vertical alignment with opening tag)
+            const lastNewlineIndex = result.lastIndexOf('\n');
+            const lastLinePrefix = lastNewlineIndex === -1 ? result : result.substring(lastNewlineIndex + 1);
+            const baseIndent = lastLinePrefix.replace(/\S/g, ' ');
+
+            // ASP Block (Multi-line or long)
             const formattedLines: string[] = [];
             let inCase = false;
             let lastLineEmpty = false;
@@ -34,7 +55,7 @@ export function formatASP(text: string): string {
                 }
                 lastLineEmpty = false;
 
-                // Naive indentation: check if current line is an end block
+                // Indentation logic
                 if (isEndBlock(trimmed)) {
                     if (inCase && trimmed.toLowerCase().startsWith('end select')) {
                         inCase = false;
@@ -42,7 +63,6 @@ export function formatASP(text: string): string {
                     indentLevel = Math.max(0, indentLevel - 1);
                 }
 
-                // Special handling for Case indentation
                 let extraCaseIndent = 0;
                 if (isCase(trimmed)) {
                     inCase = true;
@@ -50,27 +70,32 @@ export function formatASP(text: string): string {
                     extraCaseIndent = 1;
                 }
 
-                // Apply operator spacing while respecting strings
                 const processedLine = formatOperators(trimmed);
+                formattedLines.push(baseIndent + getIndent(indentLevel + extraCaseIndent) + processedLine);
 
-                // Add indentation
-                formattedLines.push(getIndent(indentLevel + 1 + extraCaseIndent) + processedLine);
-
-                // Increment indent for next line if current line starts a block
                 if (isStartBlock(trimmed)) {
                     indentLevel++;
                 }
             }
             
-            // Cleanup leading/trailing empty lines in the block
-            while (formattedLines.length > 0 && formattedLines[0] === '') {
+            // Cleanup leading/trailing empty lines
+            while (formattedLines.length > 0 && formattedLines[0].trim() === '') {
                 formattedLines.shift();
             }
-            while (formattedLines.length > 0 && formattedLines[formattedLines.length - 1] === '') {
+            while (formattedLines.length > 0 && formattedLines[formattedLines.length - 1].trim() === '') {
                 formattedLines.pop();
             }
 
-            result += '<%\n' + formattedLines.join('\n') + '\n' + getIndent(indentLevel) + '%>';
+            // Construct the final block
+            if (!isInitiallyMultiLine && formattedLines.length === 1 && !isExpression) {
+                const line = formattedLines[0].trim();
+                if (line.length < 80) {
+                    result += openingTag + ' ' + line + ' %>';
+                    continue;
+                }
+            }
+
+            result += openingTag + '\n' + formattedLines.join('\n') + '\n' + baseIndent + '%>';
         } else {
             // HTML Block
             result += part;

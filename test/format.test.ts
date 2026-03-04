@@ -35,17 +35,38 @@ describe('Formatter Unit Tests', () => {
         it('should preserve single empty lines', () => {
             const input = '<%\nline1\n\nline2\n%>';
             const output = formatASP(input);
-            assert.ok(output.includes('line1\n\n    line2'));
+            // Now expecting same-level indentation
+            assert.strictEqual(output, '<%\nline1\n\nline2\n%>');
         });
 
         it('should collapse multiple empty lines', () => {
             const input = '<%\nline1\n\n\n\nline2\n%>';
             const output = formatASP(input);
-            // Should have exactly one empty line between line1 and line2
-            const parts = output.split('\n');
-            const emptyLines = parts.filter(p => p.trim() === '').length;
-            // Expected: 1 between line1 and line2
-            assert.strictEqual(emptyLines, 1); 
+            // Now expecting same-level indentation
+            assert.strictEqual(output, '<%\nline1\n\nline2\n%>');
+        });
+    });
+
+    describe('Inline ASP and Indentation', () => {
+        it('should handle <%= inline %> without adding newlines', () => {
+            const input = '<input value="<%= mrEchoSession("mrecho") %>">';
+            const output = formatASP(input);
+            assert.strictEqual(output, '<input value="<%= mrEchoSession("mrecho") %>">');
+        });
+
+        it('should align closing tag with opening tag', () => {
+            const input = '<div>\n    <%\n    Response.Write "test"\n    %>\n</div>';
+            const output = formatASP(input);
+            const expected = '<div>\n    <%\n    Response.Write "test"\n    %>\n</div>';
+            assert.strictEqual(output, expected);
+        });
+
+        it('should handle multiline <%= ... %> correctly', () => {
+            const input = 'value="<%\n    = mrEchoSession("mrecho")\n%>"';
+            const output = formatASP(input);
+            // Opening tag column is 7 (length of 'value="'), so content should have 7 spaces
+            const expected = 'value="<%\n       = mrEchoSession("mrecho")\n       %>"';
+            assert.strictEqual(output, expected);
         });
     });
 });
