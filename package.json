@@ -2,7 +2,7 @@
     "name": "classic-asp-extension",
     "displayName": "Classic ASP Formatter & Syntax",
     "description": "Syntax highlighting, formatting, and diagnostics for Classic ASP (.asp) files",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "publisher": "pellegrinop",
     "engines": {
         "vscode": "^1.75.0"
@@ -26,10 +26,6 @@
         "vbscript",
         "formatter",
         "syntax-highlighting"
-    ],
-    "activationEvents": [
-        "onLanguage:classic-asp",
-        "onCommand:classic-asp.check"
     ],
     "main": "./out/src/extension.js",
     "contributes": {
@@ -66,7 +62,15 @@
                     "when": "resourceExtname == .asp"
                 }
             ]
-        }
+        },
+        "keybindings": [
+            {
+                "command": "editor.action.formatDocument",
+                "key": "ctrl+alt+f",
+                "mac": "cmd+alt+f",
+                "when": "editorTextFocus && editorLangId == 'classic-asp'"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",

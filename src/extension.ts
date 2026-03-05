@@ -7,6 +7,7 @@ import { formatASP } from './formatter';
  */
 export function activate(context: vscode.ExtensionContext) {
     console.log('Classic ASP extension is now active');
+    vscode.window.showInformationMessage('Classic ASP extension activated!');
 
     // 1. Diagnostics (Syntax validation)
     const diagnosticCollection = vscode.languages.createDiagnosticCollection('classic-asp');
