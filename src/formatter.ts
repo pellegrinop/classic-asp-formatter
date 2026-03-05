@@ -5,9 +5,11 @@
  */
 export function formatASP(text: string): string {
     let result = '';
-    let indentLevel = 0;
     const indentSize = 4;
     const getIndent = (level: number) => ' '.repeat(level * indentSize);
+
+    // Track global indent level for nested blocks across chips? 
+    // User wants "same level" relative to tag, so we reset for each chip.
 
     // Regex to split by ASP blocks
     const parts = text.split(/(<%[\s\S]*?%>)/g);
@@ -21,27 +23,26 @@ export function formatASP(text: string): string {
             
             const lines = content.split('\n');
             const isInitiallyMultiLine = lines.length > 1;
-            
-            // If it's a short single-line block, keep it inline
-            if (!isInitiallyMultiLine && content.trim().length < 100) {
-                const trimmed = content.trim();
-                const processed = trimmed ? formatOperators(trimmed) : '';
-                // For <%=, we often don't want a space if it's a simple variable, but let's be consistent
-                const formatted = processed ? ` ${processed} ` : '';
-                result += openingTag + formatted + '%>';
-                continue;
+            const trimmedLines = lines.map(l => l.trim()).filter(l => l !== '');
+            let activeOpeningTag = openingTag;
+            if (!isExpression && trimmedLines.length > 0 && trimmedLines[0].startsWith('=')) {
+                activeOpeningTag = '<%=';
             }
-
-            // Calculate base indentation for alignment (vertical alignment with opening tag)
+            
+            // Track if single line for potential normalization later
+            const isInitiallySingleLineShort = !isInitiallyMultiLine && content.trim().length < 80;
             const lastNewlineIndex = result.lastIndexOf('\n');
             const lastLinePrefix = lastNewlineIndex === -1 ? result : result.substring(lastNewlineIndex + 1);
-            const baseIndent = lastLinePrefix.replace(/\S/g, ' ');
+            const baseIndentMatch = lastLinePrefix.match(/^\s*/);
+            const baseIndent = baseIndentMatch ? baseIndentMatch[0] : '';
 
             // ASP Block (Multi-line or long)
             const formattedLines: string[] = [];
+            let indentLevel = 0; // Reset for each chip to align with opening tag
             let inCase = false;
             let lastLineEmpty = false;
             
+            const processedItems: string[] = [];
             for (const line of lines) {
                 const trimmed = line.trim();
                 
@@ -49,14 +50,18 @@ export function formatASP(text: string): string {
                 if (!trimmed) {
                     if (!lastLineEmpty) {
                         formattedLines.push('');
+                        processedItems.push('');
                         lastLineEmpty = true;
                     }
                     continue;
                 }
                 lastLineEmpty = false;
 
-                // Indentation logic
-                if (isEndBlock(trimmed)) {
+                let isElseLine = false;
+                if (isElse(trimmed)) {
+                    indentLevel = Math.max(0, indentLevel - 1);
+                    isElseLine = true;
+                } else if (isEndBlock(trimmed)) {
                     if (inCase && trimmed.toLowerCase().startsWith('end select')) {
                         inCase = false;
                     }
@@ -71,9 +76,10 @@ export function formatASP(text: string): string {
                 }
 
                 const processedLine = formatOperators(trimmed);
+                processedItems.push(processedLine);
                 formattedLines.push(baseIndent + getIndent(indentLevel + extraCaseIndent) + processedLine);
 
-                if (isStartBlock(trimmed)) {
+                if (isStartBlock(trimmed) || isElseLine) {
                     indentLevel++;
                 }
             }
@@ -86,16 +92,25 @@ export function formatASP(text: string): string {
                 formattedLines.pop();
             }
 
-            // Construct the final block
-            if (!isInitiallyMultiLine && formattedLines.length === 1 && !isExpression) {
-                const line = formattedLines[0].trim();
+            if (formattedLines.length === 1 && !isInitiallyMultiLine) {
+                const line = processedItems.filter(li => li.trim() !== '')[0].trim(); 
                 if (line.length < 80) {
-                    result += openingTag + ' ' + line + ' %>';
+                    let finalOpeningTag = activeOpeningTag;
+                    let contentLine = line;
+                    let separator = ' ';
+
+                    if (activeOpeningTag === '<%=' && contentLine.startsWith('= ')) {
+                        separator = '';
+                    } else if (activeOpeningTag === '<%=' && contentLine.startsWith('=')) {
+                        separator = '';
+                    }
+
+                    result += finalOpeningTag + separator + contentLine + ' %>';
                     continue;
                 }
             }
 
-            result += openingTag + '\n' + formattedLines.join('\n') + '\n' + baseIndent + '%>';
+            result += activeOpeningTag + '\n' + formattedLines.join('\n') + '\n' + baseIndent + '%>';
         } else {
             // HTML Block
             result += part;
@@ -111,11 +126,21 @@ export function formatASP(text: string): string {
  * @returns The line with formatted operators.
  */
 export function formatOperators(line: string): string {
+    // Split by VBScript comment if exists
+    const commentIndex = line.indexOf("'");
+    let codePart = line;
+    let commentPart = '';
+    
+    if (commentIndex !== -1) {
+        codePart = line.substring(0, commentIndex);
+        commentPart = line.substring(commentIndex);
+    }
+
     // Regex to find strings: "..." (with escaped "")
     // And operators: =, <>, >, <, >=, <=, +, -, *, /, &, \
     const regex = /("[^"]*(?:""[^"]*)*")|(<[=>]?|>=?|<>|[+\-*/&\\=])/g;
     
-    return line.replace(regex, (match, stringLiteral, operator) => {
+    const formattedCode = codePart.replace(regex, (match, stringLiteral, operator) => {
         if (stringLiteral) {
             return stringLiteral; // Return strings as-is
         }
@@ -123,7 +148,9 @@ export function formatOperators(line: string): string {
             return ` ${operator.trim()} `;
         }
         return match;
-    }).replace(/\s+/g, ' ').trim(); // Clean up double spaces created
+    }).replace(/\s+/g, ' ').trim();
+
+    return (formattedCode + ' ' + commentPart).trim();
 }
 
 export function isStartBlock(line: string): boolean {
@@ -140,8 +167,8 @@ export function isStartBlock(line: string): boolean {
         /^\bWith\b/i
     ];
     
-    const isSingleLineIf = /^\bIf\b.*?\bThen\b\s+[^']+/i.test(line);
-    if (isSingleLineIf && !line.includes('\n')) {
+    const isSingleLineIf = /^\bIf\b.*?\bThen\b\s+[^'\s]+/i.test(line);
+    if (isSingleLineIf) {
         return false;
     }
 
@@ -165,4 +192,8 @@ export function isEndBlock(line: string): boolean {
 
 export function isCase(line: string): boolean {
     return /^\bCase\b/i.test(line);
+}
+
+export function isElse(line: string): boolean {
+    return /^\bElse\b/i.test(line) || /^\bElseIf\b/i.test(line);
 }

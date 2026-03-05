@@ -64,9 +64,44 @@ describe('Formatter Unit Tests', () => {
         it('should handle multiline <%= ... %> correctly', () => {
             const input = 'value="<%\n    = mrEchoSession("mrecho")\n%>"';
             const output = formatASP(input);
-            // Opening tag column is 7 (length of 'value="'), so content should have 7 spaces
-            const expected = 'value="<%\n       = mrEchoSession("mrecho")\n       %>"';
-            assert.strictEqual(output, expected);
+            // Now normalized to single line since it's short, with formatted operator
+            assert.strictEqual(output, 'value="<%= = mrEchoSession("mrecho") %>"');
+        });
+
+        it('should not drift across multiple ASP blocks', () => {
+            const input = '<%\nIf x Then\n%>\n<%\nIf y Then\n%>\n<%\nEnd If\n%>\n<%\nEnd If\n%>';
+            const output = formatASP(input);
+            // Each block should start at column 0 relative to its tag
+            assert.ok(!output.includes('    If y'));
+            assert.ok(!output.includes('        End If'));
+        });
+
+        it('should align Else and ElseIf correctly', () => {
+            const input = '<%\nIf x Then\nResponse.Write "x"\nElseIf y Then\nResponse.Write "y"\nElse\nResponse.Write "z"\nEnd If\n%>';
+            const output = formatASP(input);
+            assert.ok(output.includes('\nIf x'));
+            assert.ok(output.includes('\nElseIf y'));
+            assert.ok(output.includes('\nElse'));
+            assert.ok(output.includes('\nEnd If'));
+            assert.ok(output.includes('    Response.Write'));
+        });
+
+        it('should normalize short multi-line blocks to single-line', () => {
+            const input = '<%\nIf x Then\n%>';
+            const output = formatASP(input);
+            assert.strictEqual(output, '<% If x Then %>');
+        });
+
+        it('should preserve spaces in VBScript comments', () => {
+            const input = "<%\nx = 1 ' preserve    spaces\n%>";
+            const output = formatASP(input);
+            assert.ok(output.includes("' preserve    spaces"));
+        });
+
+        it('should not break short ASP expressions in JS context', () => {
+            const input = '<script>var x = "<%=\n name \n%>";</script>';
+            const output = formatASP(input);
+            assert.ok(output.includes('"<%= name %>"'));
         });
     });
 });
