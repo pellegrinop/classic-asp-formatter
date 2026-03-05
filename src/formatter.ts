@@ -59,13 +59,13 @@ export function formatASP(text: string): string {
 
                 let isElseLine = false;
                 if (isElse(trimmed)) {
-                    indentLevel--;
+                    indentLevel = Math.max(0, indentLevel - 1);
                     isElseLine = true;
                 } else if (isEndBlock(trimmed)) {
                     if (inCase && trimmed.toLowerCase().startsWith('end select')) {
                         inCase = false;
                     }
-                    indentLevel--;
+                    indentLevel = Math.max(0, indentLevel - 1);
                 }
 
                 let extraCaseIndent = 0;

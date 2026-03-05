@@ -28,6 +28,9 @@
         "syntax-highlighting"
     ],
     "main": "./out/src/extension.js",
+    "activationEvents": [
+        "onLanguage:classic-asp"
+    ],
     "contributes": {
         "commands": [
             {
